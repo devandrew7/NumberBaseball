@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>숫자 야구</title>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@300;400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --panel: #0f1628;
+    --border: #1e2d4a;
+    --accent: #ff4d4d;
+    --green: #00e676;
+    --yellow: #ffd600;
+    --blue: #00b0ff;
+    --text: #e0e8ff;
+    --muted: #4a5a7a;
+    --diamond: #1a2540;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans KR', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    background-image: 
+      radial-gradient(ellipse at 20% 20%, rgba(0,176,255,0.05) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, rgba(255,77,77,0.05) 0%, transparent 50%);
+  }
+
+  h1 {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: clamp(2rem, 6vw, 3.5rem);
+    letter-spacing: 0.1em;
+    text-align: center;
+    margin-bottom: 4px;
+    background: linear-gradient(135deg, #ff4d4d, #ff8c42, #ffd600);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 20px rgba(255,77,77,0.3));
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 0.85rem;
+    letter-spacing: 0.3em;
+    text-align: center;
+    margin-bottom: 32px;
+    text-transform: uppercase;
+  }
+
+  .game-container {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 20px;
+    width: 100%;
+    max-width: 900px;
+  }
+
+  @media (max-width: 700px) {
+    .game-container { grid-template-columns: 1fr; }
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--blue), transparent);
+    opacity: 0.6;
+  }
+
+  .panel-title {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 0.9rem;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    margin-bottom: 20px;
+    text-transform: uppercase;
+  }
+
+  /* Baseball diamond */
+  .diamond-wrap {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 24px;
+  }
+
+  .diamond {
+    position: relative;
+    width: 120px;
+    height: 120px;
+  }
+
+  .base {
+    position: absolute;
+    width: 28px;
+    height: 28px;
+    background: var(--diamond);
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    transform: rotate(45deg);
+    transition: all 0.4s ease;
+  }
+
+  .base.lit {
+    background: var(--accent);
+    border-color: var(--accent);
+    box-shadow: 0 0 16px var(--accent);
+  }
+
+  .base-home { bottom: 0; left: 50%; transform: translateX(-50%) rotate(45deg); }
+  .base-first { right: 0; top: 50%; transform: translateY(-50%) rotate(45deg); }
+  .base-second { top: 0; left: 50%; transform: translateX(-50%) rotate(45deg); }
+  .base-third { left: 0; top: 50%; transform: translateY(-50%) rotate(45deg); }
+
+  .field-line {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 60%; height: 1px;
+    background: var(--border);
+    transform-origin: left center;
+  }
+
+  /* Input area */
+  .input-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .digit-inputs {
+    display: flex;
+    gap: 8px;
+    flex: 1;
+  }
+
+  .digit-input {
+    flex: 1;
+    background: #0a0e1a;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.8rem;
+    text-align: center;
+    padding: 10px 4px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    width: 100%;
+    -moz-appearance: textfield;
+  }
+
+  .digit-input::-webkit-outer-spin-button,
+  .digit-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+  .digit-input:focus {
+    border-color: var(--blue);
+    box-shadow: 0 0 12px rgba(0,176,255,0.25);
+  }
+
+  .btn {
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 1rem;
+    letter-spacing: 0.05em;
+    padding: 10px 20px;
+    transition: all 0.2s;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #ff4d4d, #ff8c42);
+    color: white;
+    box-shadow: 0 4px 20px rgba(255,77,77,0.3);
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(255,77,77,0.45);
+  }
+
+  .btn-primary:active { transform: translateY(0); }
+
+  .btn-secondary {
+    background: var(--border);
+    color: var(--muted);
+    font-size: 0.85rem;
+    padding: 8px 16px;
+  }
+
+  .btn-secondary:hover { background: #2a3a5a; color: var(--text); }
+
+  /* Result badge */
+  .result-badge {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+
+  .badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: #0a0e1a;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 20px;
+    min-width: 80px;
+  }
+
+  .badge-num {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 2rem;
+    font-weight: bold;
+    line-height: 1;
+  }
+
+  .badge-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    margin-top: 4px;
+    text-transform: uppercase;
+  }
+
+  .badge.strike .badge-num { color: var(--accent); }
+  .badge.ball .badge-num { color: var(--yellow); }
+  .badge.out .badge-num { color: var(--muted); }
+
+  /* History */
+  .history-list {
+    max-height: 340px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .history-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    background: #0a0e1a;
+    border: 1px solid var(--border);
+    animation: slideIn 0.3s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-12px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .history-num {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.2rem;
+    letter-spacing: 0.3em;
+    color: var(--blue);
+  }
+
+  .history-result {
+    display: flex;
+    gap: 8px;
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+
+  .hs { color: var(--accent); }
+  .hb { color: var(--yellow); }
+  .ho { color: var(--muted); }
+
+  .try-num {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    min-width: 24px;
+  }
+
+  /* Win screen */
+  .win-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .win-overlay.show { display: flex; }
+
+  .win-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 48px;
+    text-align: center;
+    animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  @keyframes popIn {
+    from { transform: scale(0.5); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  .win-title {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 3rem;
+    background: linear-gradient(135deg, #ffd600, #ff8c42, #ff4d4d);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+  }
+
+  .win-answer {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 3rem;
+    color: var(--green);
+    letter-spacing: 0.3em;
+    margin: 16px 0;
+    text-shadow: 0 0 24px var(--green);
+  }
+
+  .win-tries {
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-bottom: 24px;
+  }
+
+  /* Attempts counter */
+  .attempts-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .attempts-label { color: var(--muted); font-size: 0.85rem; }
+  .attempts-val {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.1rem;
+    color: var(--yellow);
+  }
+
+  /* Keypad */
+  .keypad {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+
+  .key {
+    background: #0a0e1a;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.1rem;
+    padding: 10px 4px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+    user-select: none;
+  }
+
+  .key:hover { background: var(--border); border-color: var(--blue); }
+  .key:active { transform: scale(0.93); }
+
+  .rule-text {
+    font-size: 0.78rem;
+    color: var(--muted);
+    line-height: 1.7;
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+    margin-top: 8px;
+  }
+
+  .firework {
+    position: fixed;
+    pointer-events: none;
+    z-index: 200;
+  }
+
+  .empty-history {
+    color: var(--muted);
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 32px 0;
+    letter-spacing: 0.1em;
+  }
+</style>
+</head>
+<body>
+
+<h1>⚾ 숫자야구</h1>
+<p class="subtitle">Number Baseball Game</p>
+
+<div class="game-container">
+  <!-- Left: Main -->
+  <div>
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="panel-title">⚾ 베이스</div>
+      <div class="diamond-wrap">
+        <div class="diamond">
+          <div class="base base-second" id="base2"></div>
+          <div class="base base-third" id="base3"></div>
+          <div class="base base-first" id="base1"></div>
+          <div class="base base-home" id="base0"></div>
+        </div>
+      </div>
+
+      <div class="result-badge">
+        <div class="badge strike">
+          <span class="badge-num" id="s-count">0</span>
+          <span class="badge-label">Strike</span>
+        </div>
+        <div class="badge ball">
+          <span class="badge-num" id="b-count">0</span>
+          <span class="badge-label">Ball</span>
+        </div>
+        <div class="badge out">
+          <span class="badge-num" id="o-count">0</span>
+          <span class="badge-label">Out</span>
+        </div>
+      </div>
+
+      <div class="attempts-row">
+        <span class="attempts-label">시도 횟수</span>
+        <span class="attempts-val" id="attempts">0</span>
+      </div>
+
+      <div class="input-row">
+        <div class="digit-inputs" id="digit-inputs">
+          <input class="digit-input" type="number" min="0" max="9" maxlength="1" placeholder="?" id="d0">
+          <input class="digit-input" type="number" min="0" max="9" maxlength="1" placeholder="?" id="d1">
+          <input class="digit-input" type="number" min="0" max="9" maxlength="1" placeholder="?" id="d2">
+        </div>
+        <button class="btn btn-primary" onclick="submitGuess()">투구!</button>
+      </div>
+
+      <!-- Keypad for mobile -->
+      <div class="keypad" id="keypad">
+        <div class="key" onclick="pressKey(1)">1</div>
+        <div class="key" onclick="pressKey(2)">2</div>
+        <div class="key" onclick="pressKey(3)">3</div>
+        <div class="key" onclick="pressKey(4)">4</div>
+        <div class="key" onclick="pressKey(5)">5</div>
+        <div class="key" onclick="pressKey(6)">6</div>
+        <div class="key" onclick="pressKey(7)">7</div>
+        <div class="key" onclick="pressKey(8)">8</div>
+        <div class="key" onclick="pressKey(9)">9</div>
+        <div class="key" onclick="pressKey(0)">0</div>
+        <div class="key" onclick="pressBackspace()" style="grid-column:span 2; color:var(--accent)">⌫ 지우기</div>
+        <div class="key" onclick="submitGuess()" style="grid-column:span 3; color:var(--green)">✓ 투구</div>
+      </div>
+    </div>
+
+    <!-- History -->
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div class="panel-title" style="margin:0;">📋 투구 기록</div>
+        <button class="btn btn-secondary" onclick="newGame()">새 게임</button>
+      </div>
+      <div class="history-list" id="history">
+        <div class="empty-history" id="empty-msg">아직 투구 기록이 없습니다</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: Rules -->
+  <div>
+    <div class="panel">
+      <div class="panel-title">📖 게임 규칙</div>
+      <div class="rule-text">
+        <p>컴퓨터가 <strong style="color:var(--blue)">서로 다른 숫자 3개</strong>로 이루어진 비밀 번호를 정합니다.</p>
+        <br>
+        <p>숫자 3자리를 입력하여 추측하세요!</p>
+        <br>
+        <p><strong style="color:var(--accent)">⚡ Strike</strong><br>
+        숫자와 위치가 모두 맞을 때</p>
+        <br>
+        <p><strong style="color:var(--yellow)">🟡 Ball</strong><br>
+        숫자는 맞지만 위치가 다를 때</p>
+        <br>
+        <p><strong style="color:var(--muted)">⚫ Out</strong><br>
+        해당 숫자가 없을 때 (개수)</p>
+        <br>
+        <p><strong style="color:var(--green)">🎉 3 Strike!</strong><br>
+        숫자 3개 모두 위치까지 맞추면 승리!</p>
+        <br>
+        <hr style="border-color:var(--border);margin:8px 0;">
+        <p>예시: 정답이 <strong style="color:var(--blue); font-family:'Share Tech Mono'">4 2 7</strong> 일 때</p>
+        <br>
+        <p><strong style="font-family:'Share Tech Mono'">1 2 3</strong> → 1S 0B 2Out<br>
+        <strong style="font-family:'Share Tech Mono'">4 7 2</strong> → 1S 2B 0Out<br>
+        <strong style="font-family:'Share Tech Mono'">4 2 7</strong> → 3S 🎉</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Win Overlay -->
+<div class="win-overlay" id="win-overlay">
+  <div class="win-box">
+    <div class="win-title">🎉 홈런!</div>
+    <p style="color:var(--muted);margin-bottom:8px;">정답은</p>
+    <div class="win-answer" id="win-answer">---</div>
+    <p class="win-tries" id="win-tries"></p>
+    <button class="btn btn-primary" onclick="newGame()" style="font-size:1.1rem;padding:14px 36px;">다시 시작</button>
+  </div>
+</div>
+
+<script>
+let answer = [];
+let tries = 0;
+let activeInput = 0;
+const inputs = [document.getElementById('d0'), document.getElementById('d1'), document.getElementById('d2')];
+
+function generateAnswer() {
+  const digits = [1,2,3,4,5,6,7,8,9,0];
+  const shuffled = digits.sort(() => Math.random() - 0.5);
+  // ensure first digit isn't 0
+  while (shuffled[0] === 0) shuffled.sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, 3);
+}
+
+function newGame() {
+  answer = generateAnswer();
+  tries = 0;
+  document.getElementById('attempts').textContent = '0';
+  document.getElementById('s-count').textContent = '0';
+  document.getElementById('b-count').textContent = '0';
+  document.getElementById('o-count').textContent = '0';
+  document.getElementById('history').innerHTML = '<div class="empty-history" id="empty-msg">아직 투구 기록이 없습니다</div>';
+  document.getElementById('win-overlay').classList.remove('show');
+  inputs.forEach(i => { i.value = ''; });
+  inputs[0].focus();
+  activeInput = 0;
+  updateBases(0, 0);
+  console.log('Answer (dev):', answer.join(''));
+}
+
+function pressKey(num) {
+  let current = activeInput;
+  // find next empty or current
+  let found = -1;
+  for (let i = 0; i < 3; i++) {
+    if (inputs[i].value === '') { found = i; break; }
+  }
+  if (found === -1) return;
+  inputs[found].value = num;
+  if (found < 2) {
+    activeInput = found + 1;
+    inputs[found + 1].focus();
+  }
+}
+
+function pressBackspace() {
+  for (let i = 2; i >= 0; i--) {
+    if (inputs[i].value !== '') {
+      inputs[i].value = '';
+      activeInput = i;
+      inputs[i].focus();
+      break;
+    }
+  }
+}
+
+function updateBases(strikes, balls) {
+  const bases = [document.getElementById('base0'), document.getElementById('base1'),
+                 document.getElementById('base2'), document.getElementById('base3')];
+  bases.forEach(b => b.classList.remove('lit'));
+  // light bases by strikes (for visual flavor)
+  for (let i = 0; i < Math.min(strikes, 3); i++) {
+    bases[i].classList.add('lit');
+  }
+}
+
+function submitGuess() {
+  const vals = inputs.map(i => i.value.trim());
+  if (vals.some(v => v === '' || isNaN(v))) {
+    shakeInputs();
+    return;
+  }
+  const guess = vals.map(Number);
+  // check duplicates
+  if (new Set(guess).size !== 3) {
+    shakeInputs();
+    showMsg('중복된 숫자는 사용할 수 없습니다!');
+    return;
+  }
+
+  tries++;
+  document.getElementById('attempts').textContent = tries;
+
+  let strikes = 0, balls = 0;
+  for (let i = 0; i < 3; i++) {
+    if (guess[i] === answer[i]) strikes++;
+    else if (answer.includes(guess[i])) balls++;
+  }
+  const outs = 3 - strikes - balls;
+
+  document.getElementById('s-count').textContent = strikes;
+  document.getElementById('b-count').textContent = balls;
+  document.getElementById('o-count').textContent = outs;
+
+  updateBases(strikes, balls);
+  addHistory(guess, strikes, balls, outs);
+
+  inputs.forEach(i => i.value = '');
+  inputs[0].focus();
+  activeInput = 0;
+
+  if (strikes === 3) {
+    setTimeout(() => {
+      document.getElementById('win-answer').textContent = answer.join(' ');
+      document.getElementById('win-tries').textContent = `${tries}번 만에 맞추셨습니다! 🏆`;
+      document.getElementById('win-overlay').classList.add('show');
+      launchFireworks();
+    }, 400);
+  }
+}
+
+function addHistory(guess, s, b, o) {
+  const empty = document.getElementById('empty-msg');
+  if (empty) empty.remove();
+
+  const list = document.getElementById('history');
+  const item = document.createElement('div');
+  item.className = 'history-item';
+  item.innerHTML = `
+    <span class="try-num">#${tries}</span>
+    <span class="history-num">${guess.join(' ')}</span>
+    <span class="history-result">
+      <span class="hs">${s}S</span>
+      <span class="hb">${b}B</span>
+      <span class="ho">${o}O</span>
+    </span>
+  `;
+  list.insertBefore(item, list.firstChild);
+}
+
+function shakeInputs() {
+  const row = document.getElementById('digit-inputs');
+  row.style.animation = 'none';
+  row.offsetHeight;
+  row.style.animation = 'shake 0.4s ease';
+}
+
+function showMsg(msg) {
+  // simple toast
+  const t = document.createElement('div');
+  t.textContent = msg;
+  t.style.cssText = `position:fixed;top:20px;left:50%;transform:translateX(-50%);
+    background:#ff4d4d;color:white;padding:10px 20px;border-radius:8px;
+    font-size:0.9rem;z-index:300;animation:slideIn 0.3s ease;`;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2000);
+}
+
+function launchFireworks() {
+  for (let i = 0; i < 12; i++) {
+    setTimeout(() => {
+      const fw = document.createElement('div');
+      fw.className = 'firework';
+      const x = Math.random() * window.innerWidth;
+      const y = Math.random() * window.innerHeight * 0.6;
+      fw.style.cssText = `left:${x}px;top:${y}px;`;
+      
+      const colors = ['#ff4d4d','#ffd600','#00e676','#00b0ff','#ff8c42'];
+      for (let j = 0; j < 12; j++) {
+        const p = document.createElement('div');
+        const angle = (j / 12) * 360;
+        const dist = 40 + Math.random() * 40;
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        p.style.cssText = `position:absolute;width:6px;height:6px;border-radius:50%;
+          background:${color};transition:all 0.6s ease-out;
+          transform:rotate(${angle}deg) translateX(0px);`;
+        fw.appendChild(p);
+        setTimeout(() => {
+          p.style.transform = `rotate(${angle}deg) translateX(${dist}px)`;
+          p.style.opacity = '0';
+        }, 50);
+      }
+      document.body.appendChild(fw);
+      setTimeout(() => fw.remove(), 800);
+    }, i * 150);
+  }
+}
+
+// Input handling
+inputs.forEach((input, idx) => {
+  input.addEventListener('input', () => {
+    let v = input.value.replace(/\D/g,'').slice(-1);
+    input.value = v;
+    if (v !== '' && idx < 2) {
+      inputs[idx + 1].focus();
+      activeInput = idx + 1;
+    }
+  });
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Backspace' && input.value === '' && idx > 0) {
+      inputs[idx - 1].focus();
+      activeInput = idx - 1;
+    }
+    if (e.key === 'Enter') submitGuess();
+  });
+
+  input.addEventListener('focus', () => activeInput = idx);
+});
+
+// Shake animation
+const style = document.createElement('style');
+style.textContent = `@keyframes shake {
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-8px)}
+  40%{transform:translateX(8px)}
+  60%{transform:translateX(-5px)}
+  80%{transform:translateX(5px)}
+}`;
+document.head.appendChild(style);
+
+newGame();
+</script>
+</body>
+</html>
