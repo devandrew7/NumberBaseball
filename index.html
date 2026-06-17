@@ -455,9 +455,9 @@
 
       <div class="input-row">
         <div class="digit-inputs" id="digit-inputs">
-          <input class="digit-input" type="number" min="0" max="9" maxlength="1" placeholder="?" id="d0">
-          <input class="digit-input" type="number" min="0" max="9" maxlength="1" placeholder="?" id="d1">
-          <input class="digit-input" type="number" min="0" max="9" maxlength="1" placeholder="?" id="d2">
+          <input class="digit-input" type="text" inputmode="none" readonly placeholder="?" id="d0">
+          <input class="digit-input" type="text" inputmode="none" readonly placeholder="?" id="d1">
+          <input class="digit-input" type="text" inputmode="none" readonly placeholder="?" id="d2">
         </div>
         <button class="btn btn-primary" onclick="submitGuess()">투구!</button>
       </div>
@@ -565,28 +565,20 @@ function newGame() {
 }
 
 function pressKey(num) {
-  let current = activeInput;
-  // find next empty or current
-  let found = -1;
-  for (let i = 0; i < 3; i++) {
-    if (inputs[i].value === '') { found = i; break; }
-  }
-  if (found === -1) return;
-  inputs[found].value = num;
-  if (found < 2) {
-    activeInput = found + 1;
-    inputs[found + 1].focus();
+  inputs[activeInput].value = num;
+  if (activeInput < 2) {
+    activeInput = activeInput + 1;
+    inputs[activeInput].focus();
   }
 }
 
 function pressBackspace() {
-  for (let i = 2; i >= 0; i--) {
-    if (inputs[i].value !== '') {
-      inputs[i].value = '';
-      activeInput = i;
-      inputs[i].focus();
-      break;
-    }
+  if (inputs[activeInput].value !== '') {
+    inputs[activeInput].value = '';
+  } else if (activeInput > 0) {
+    activeInput = activeInput - 1;
+    inputs[activeInput].focus();
+    inputs[activeInput].value = '';
   }
 }
 
@@ -714,21 +706,27 @@ function launchFireworks() {
 
 // Input handling
 inputs.forEach((input, idx) => {
-  input.addEventListener('input', () => {
-    let v = input.value.replace(/\D/g,'').slice(-1);
-    input.value = v;
-    if (v !== '' && idx < 2) {
-      inputs[idx + 1].focus();
-      activeInput = idx + 1;
-    }
-  });
-
   input.addEventListener('keydown', (e) => {
-    if (e.key === 'Backspace' && input.value === '' && idx > 0) {
-      inputs[idx - 1].focus();
-      activeInput = idx - 1;
+    if (e.key >= '0' && e.key <= '9') {
+      input.value = e.key;
+      if (idx < 2) {
+        inputs[idx + 1].focus();
+        activeInput = idx + 1;
+      }
+      e.preventDefault();
+    } else if (e.key === 'Backspace') {
+      if (input.value !== '') {
+        input.value = '';
+      } else if (idx > 0) {
+        inputs[idx - 1].focus();
+        activeInput = idx - 1;
+        inputs[idx - 1].value = '';
+      }
+      e.preventDefault();
+    } else if (e.key === 'Enter') {
+      submitGuess();
+      e.preventDefault();
     }
-    if (e.key === 'Enter') submitGuess();
   });
 
   input.addEventListener('focus', () => activeInput = idx);
